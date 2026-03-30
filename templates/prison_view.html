@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-grid">
+  <section class="grid-left">
+    <div class="card gov-card h-100">
+      <div class="card-body h-100 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="page-title">{{ pr.name }}</div>
+            <div class="muted mt-1">
+              <span class="me-2"><b>الرمز:</b> {{ pr.code }}</span>
+              <span class="me-2"><b>المنطقة:</b> {{ pr.region }}</span>
+              <span class="me-2"><b>السعة:</b> {{ pr.capacity }}</span>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-outline-gov" href="{{ url_for('dashboard') }}">لوحة المؤشرات</a>
+            <a class="btn btn-gov" href="{{ url_for('process_new') }}">إنشاء عملية</a>
+          </div>
+        </div>
+
+        <div class="split mt-3">
+          <div class="split-left">
+            <div class="panel-title">اتجاه المخاطر (آخر 10 عمليات)</div>
+            <div class="chart-wrap mt-2">
+              <canvas id="trendChart"></canvas>
+            </div>
+
+            <div class="panel-title mt-3">أحدث العمليات</div>
+            <div class="table-responsive table-fix mini-table">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>المرجع</th>
+                    <th>المسار</th>
+                    <th class="text-truncate">العنوان</th>
+                    <th class="text-center">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in procs[:8] %}
+                  <tr class="row-link" data-href="{{ url_for('process_view', process_id=p.id) }}">
+                    <td class="fw-semibold">{{ p.ref_no }}</td>
+                    <td>{{ tracks.get(p.track_type, p.track_type) }}</td>
+                    <td class="text-truncate" style="max-width: 250px;">{{ p.title }}</td>
+                    <td class="text-center"><span class="pill pill-status">{{ status_map.get(p.status, p.status) }}</span></td>
+                  </tr>
+                  {% endfor %}
+                  {% if procs|length == 0 %}
+                    <tr><td colspan="4" class="text-center muted py-4">لا توجد عمليات مسجلة لهذا السجن</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="split-right">
+            <div class="panel-title">ملاحظات تحت المعالجة</div>
+            <div class="table-responsive table-fix">
+              <table class="table table-hover align-middle">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المرجع</th>
+                    <th>المحور</th>
+                    <th class="text-center">الخطورة</th>
+                    <th class="text-center">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for f in backlog[:10] %}
+                  <tr>
+                    <td class="fw-semibold">{{ f.id }}</td>
+                    <td class="text-nowrap">{{ f.ref_no }}</td>
+                    <td class="text-truncate" style="max-width: 140px;">{{ f.axis }}</td>
+                    <td class="text-center"><span class="pill pill-{{ f.severity|lower }}">{{ sev_map.get(f.severity, f.severity) }}</span></td>
+                    <td class="text-center">
+                      {% if f.status == "OPEN" %}مفتوحة{% elif f.status=="IN_REVIEW" %}قيد المراجعة{% else %}مغلقة{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                  {% if backlog|length == 0 %}
+                    <tr><td colspan="5" class="text-center muted py-4">لا توجد ملاحظات مفتوحة</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-auto">
+              <a class="btn btn-outline-gov w-100" href="{{ url_for('processes', region=pr.region) }}">عمليات منطقة {{ pr.region }}</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <aside class="grid-right">
+    <div class="card gov-card h-100">
+      <div class="card-body h-100 d-flex flex-column">
+        <div class="panel-title">ملخص المخاطر</div>
+        <div class="summary-cards mt-2">
+          <div class="sum-card">
+            <div class="sum-k">KRI</div>
+            <div class="sum-v">{{ (trend[-1].score if trend|length>0 else 0) }}</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-k">الملاحظات المفتوحة</div>
+            <div class="sum-v">{{ backlog|length }}</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-k">عمليات حديثة</div>
+            <div class="sum-v">{{ procs|length }}</div>
+          </div>
+        </div>
+
+        <div class="panel-title mt-3">توصيات تنفيذية</div>
+        <div class="guide-list mt-2">
+          <div class="guide-item">
+            <div class="g-title">رفع الالتزام</div>
+            <div class="g-text">إغلاق الملاحظات عالية الخطورة ضمن المهل المحددة وتحسين الضوابط التشغيلية.</div>
+          </div>
+          <div class="guide-item">
+            <div class="g-title">تقليل التكرار</div>
+            <div class="g-text">ربط المعالجات بالملاحظة الأصلية وإعادة التقييم في الجولة التالية لضمان الاستدامة.</div>
+          </div>
+          <div class="guide-item">
+            <div class="g-title">تغذية المؤشرات</div>
+            <div class="g-text">تعزيز جودة البيانات عبر الاختيارات الموحدة والمرفقات لإثراء التحليل والاستباقية.</div>
+          </div>
+        </div>
+
+        <div class="mt-auto">
+          <a class="btn btn-gov w-100" href="{{ url_for('process_new') }}">إنشاء عملية لهذا السجن</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.__PRISON = {
+    trend: {{ trend|tojson }}
+  };
+</script>
+{% endblock %}

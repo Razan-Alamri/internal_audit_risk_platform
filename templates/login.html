@@ -1,0 +1,35 @@
+{% extends "base.html" %} {% block content %}
+<div class="vh-card">
+    <div class="row g-3 h-100">
+        <div class="col-lg-7 h-100">
+            <div class="card gov-card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="page-title">تسجيل الدخول</div>
+                    <div class="text-muted mb-3">اختاري المستخدم للدخول حسب الدور الوظيفي.</div>
+
+                    <form method="post" class="mt-2">
+                        <label class="form-label">المستخدم</label>
+                        <select name="username" class="form-select form-select-lg" required>
+              <option value="" selected disabled>اختيار المستخدم…</option>
+              {% for u in users %}
+                <option value="{{ u.username }}">{{ u.display_name }} — {{ u.role }}{% if u.region %} ({{ u.region }}){% endif %}</option>
+              {% endfor %}
+            </select>
+
+                        <div class="d-grid mt-3">
+                            <button class="btn btn-gov btn-lg">دخول المنصة</button>
+                        </div>
+                    </form>
+
+                    <div class="mt-auto small text-muted">
+                        يعتمد الدخول على الأدوار والصلاحيات وفق نموذج الحوكمة.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+</div>
+{% endblock %}

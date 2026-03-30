@@ -1,0 +1,79 @@
+{% extends "base.html" %} {% block content %}
+<div class="vh-card">
+    <section class="grid-left">
+        <div class="card gov-card h-100">
+            <div class="card-body h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="page-title">سجل العمليات</div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-gov" href="{{ url_for('dashboard') }}">العودة للوحة</a>
+                        <a class="btn btn-gov" href="{{ url_for('process_new') }}">إنشاء عملية</a>
+                    </div>
+                </div>
+
+                <form class="filter-bar mt-3" method="get">
+                    <select class="form-select" name="region">
+            <option value="">كل المناطق</option>
+            {% for r in regions %}
+              <option value="{{ r }}" {% if request.args.get('region')==r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+
+                    <select class="form-select" name="track">
+            <option value="">كل المسارات</option>
+            {% for k,v in tracks.items() %}
+              <option value="{{ k }}" {% if request.args.get('track')==k %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+
+                    <select class="form-select" name="status">
+            <option value="">كل الحالات</option>
+            {% for k,v in status_map.items() %}
+              <option value="{{ k }}" {% if request.args.get('status')==k %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+
+                    <button class="btn btn-outline-gov">تطبيق</button>
+                </form>
+
+                <div class="table-responsive table-fix mt-2">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>المرجع</th>
+                                <th>المسار</th>
+                                <th>العنوان</th>
+                                <th>السجن</th>
+                                <th>المنطقة</th>
+                                <th class="text-nowrap">التاريخ</th>
+                                <th class="text-center">الأولوية</th>
+                                <th class="text-center">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in rows %}
+                            <tr class="row-link" data-href="{{ url_for('process_view', process_id=r.id) }}">
+                                <td class="fw-semibold">{{ r.ref_no }}</td>
+                                <td>{{ tracks.get(r.track_type, r.track_type) }}</td>
+                                <td class="text-truncate" style="max-width: 260px;">{{ r.title }}</td>
+                                <td class="text-nowrap">{{ r.prison_name }}</td>
+                                <td class="text-nowrap">{{ r.region }}</td>
+                                <td class="text-nowrap">{{ r.planned_date or r.created_at[:10] }}</td>
+                                <td class="text-center"><span class="pill pill-pri-{{ r.priority|lower }}">{{ pri_map.get(r.priority, r.priority) }}</span></td>
+                                <td class="text-center"><span class="pill pill-status">{{ status_map.get(r.status, r.status) }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-auto small text-muted">
+                    يعرض السجل دورة الحياة الكاملة للعمليات مع تتبع الحوكمة والإسناد والمخرجات.
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+</div>
+{% endblock %}

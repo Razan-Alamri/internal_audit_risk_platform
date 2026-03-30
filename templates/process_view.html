@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="vh-card">
+    <section class="grid-left">
+        <div class="card gov-card h-100">
+            <div class="card-body h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="page-title">{{ p.title }}</div>
+                        <div class="muted mt-1">
+                            <span class="me-2"><b>المرجع:</b> {{ p.ref_no }}</span>
+                            <span class="me-2"><b>المسار:</b> {{ tracks.get(p.track_type, p.track_type) }}</span>
+                            <span class="me-2"><b>السجن:</b> {{ p.prison_name }}</span>
+                            <span class="me-2"><b>المنطقة:</b> {{ p.region }}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-gov" href="{{ url_for('processes') }}">السجل</a>
+                        <a class="btn btn-outline-gov" href="{{ url_for('dashboard') }}">لوحة المؤشرات</a>
+                    </div>
+                </div>
+
+                <div class="stage-bar mt-3">
+                    {% for st in wf.stages %}
+                    <div class="stage {% if p.status == st.code %}active{% endif %}">
+                        <div class="st-dot"></div>
+                        <div class="st-label">{{ st.label }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="split mt-3">
+                    <div class="split-left">
+                        <div class="panel-title">التقييم المهيكل</div>
+
+                        <div class="mt-2 mb-2 p-2 rounded-3"
+                             style="background:#f8f8f6; border:1px solid rgba(15,18,16,0.08);">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span class="fw-bold">درجة التقييم المعتمدة:</span>
+                                <span class="pill">1 - سيئ جدًا</span>
+                                <span class="pill">2 - سيئ</span>
+                                <span class="pill">3 - مقبول</span>
+                                <span class="pill">4 - جيد جدًا</span>
+                                <span class="pill">5 - ممتاز</span>
+                            </div>
+                        </div>
+
+                        <form method="post" action="{{ url_for('process_save_assessment', process_id=p.id) }}" class="assessment">
+                            <div class="assessment-grid">
+                                {% for ax in crit.axes %}
+                                {% set ai = loop.index0 %}
+                                <div class="axis-card">
+                                    <div class="axis-head">
+                                        <div class="axis-name">{{ ax.name }}</div>
+                                        <div class="axis-meta">الدرجة: {{ (ax.weight * 100)|round(0) }}%</div>
+                                    </div>
+
+                                    <div class="axis-body">
+                                        {% for cr in ax.criteria %}
+                                        {% set ci = loop.index0 %}
+                                        {% set key = ai ~ ":" ~ ci %}
+                                        <div class="criterion">
+                                            <div class="c-title">{{ cr.name }}</div>
+                                            <div class="c-opts">
+                                                {% for opt in cr.options %}
+                                                <label class="opt">
+                                                    <input type="radio"
+                                                           name="{{ key }}"
+                                                           value="{{ opt.value }}"
+                                                           {% if answers.get(key, 5)|int == opt.value %}checked{% endif %}
+                                                           required>
+                                                    <span>{{ opt.value }} - {{ opt.label }}</span>
+                                                </label>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <button class="btn btn-gov">حفظ التقييم</button>
+                                <div class="muted">تُحتسب النسب تلقائيًا وتُغذّي مؤشرات المخاطر.</div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="split-right">
+                        <div class="panel-title">المؤشرات والمخرجات</div>
+
+                        <div class="score-card mt-2">
+                            <div>
+                                <div class="sc-label">مؤشر المخاطر للعملية</div>
+                                <div class="sc-value">{{ score.total }}</div>
+                            </div>
+                            <div class="pill pill-{{ score.level|lower }}">تصنيف: {{ sev_map.get(score.level, score.level) }}</div>
+                        </div>
+
+                        <div class="axis-mini mt-2">
+                            {% for a in score.axes %}
+                            <div class="axis-mini-row">
+                                <div class="am-name">{{ a.axis }}</div>
+                                <div class="am-bar">
+                                    <div class="am-fill" style="width: {{ a.score }}%;"></div>
+                                </div>
+                                <div class="am-score">{{ a.score }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-2 d-flex gap-2">
+                            <button class="btn btn-outline-gov w-50" data-bs-toggle="modal" data-bs-target="#addFindingModal">إضافة ملاحظة</button>
+                            <button class="btn btn-outline-gov w-50" data-bs-toggle="modal" data-bs-target="#statusModal">تحديث الحالة</button>
+                        </div>
+
+                        <div class="panel-title mt-3">الملاحظات</div>
+                        <div class="table-responsive table-fix mini-table">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>المحور</th>
+                                        <th>المعيار</th>
+                                        <th class="text-center">الخطورة</th>
+                                        <th class="text-center">الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for f in findings[:8] %}
+                                    <tr>
+                                        <td class="fw-semibold">{{ f.id }}</td>
+                                        <td class="text-truncate" style="max-width: 120px;">{{ f.axis }}</td>
+                                        <td class="text-truncate" style="max-width: 160px;">{{ f.criterion }}</td>
+                                        <td class="text-center">
+                                            <span class="pill pill-{{ f.severity|lower }}">{{ sev_map.get(f.severity, f.severity) }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <form method="post" action="{{ url_for('update_finding', finding_id=f.id) }}">
+                                                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                    <option value="OPEN" {% if f.status == 'OPEN' %}selected{% endif %}>مفتوحة</option>
+                                                    <option value="IN_REVIEW" {% if f.status == 'IN_REVIEW' %}selected{% endif %}>قيد المراجعة</option>
+                                                    <option value="DONE" {% if f.status == 'DONE' %}selected{% endif %}>مغلقة</option>
+                                                </select>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if findings|length == 0 %}
+                                    <tr>
+                                        <td colspan="5" class="text-center muted py-4">لا توجد ملاحظات مسجلة</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="panel-title mt-3">سجل الإجراءات</div>
+                        <div class="log-box">
+                            {% for l in log %}
+                            <div class="log-row">
+                                <div class="lr-main">
+                                    <div class="lr-action">{{ l.action }}</div>
+                                    <div class="lr-details">{{ l.details }}</div>
+                                </div>
+                                <div class="lr-meta">{{ l.actor }} • {{ l.action_at }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content gov-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">تحديث حالة العملية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{{ url_for('process_update_status', process_id=p.id) }}">
+                <div class="modal-body">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-select form-select-lg" required>
+                        {% for k, v in status_map.items() %}
+                        <option value="{{ k }}" {% if p.status == k %}selected{% endif %}>{{ v }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-gov" type="button" data-bs-dismiss="modal">إلغاء</button>
+                    <button class="btn btn-gov">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Finding Modal -->
+<div class="modal fade" id="addFindingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content gov-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة ملاحظة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{{ url_for('add_finding', process_id=p.id) }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">المحور</label>
+                            <select name="axis" class="form-select form-select-lg" required id="axisSel">
+                                <option value="" disabled selected>اختيار المحور…</option>
+                                {% for ax in crit.axes %}
+                                <option value="{{ ax.name }}">{{ ax.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">المعيار</label>
+                            <select name="criterion" class="form-select form-select-lg" required id="critSel">
+                                <option value="" disabled selected>اختيار المعيار…</option>
+                                {% for ax in crit.axes %}
+                                    {% for cr in ax.criteria %}
+                                    <option value="{{ cr.name }}" data-axis="{{ ax.name }}">{{ cr.name }}</option>
+                                    {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">الخطورة</label>
+                            <select name="severity" class="form-select form-select-lg" required>
+                                {% for k, v in sev_map.items() %}
+                                <option value="{{ k }}">{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">نوع الملاحظة</label>
+                            <select name="finding_type" class="form-select form-select-lg" required>
+                                {% for k, v in finding_types.items() %}
+                                <option value="{{ k }}">{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">المهلة (SLA)</label>
+                            <input type="date" name="due_date" class="form-control form-control-lg">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">الجهة المعالجة</label>
+                            <input name="owner_unit" class="form-control form-control-lg" placeholder="مثال: إدارة التشغيل / الرعاية الصحية">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">الوصف</label>
+                            <input name="description" class="form-control form-control-lg" placeholder="وصف مختصر وواضح للملاحظة">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-outline-gov" type="button" data-bs-dismiss="modal">إلغاء</button>
+                    <button class="btn btn-gov">تسجيل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const axisSel = document.getElementById('axisSel');
+    const critSel = document.getElementById('critSel');
+
+    function filterCriteria() {
+        const a = axisSel.value;
+        [...critSel.options].forEach((opt, idx) => {
+            if (idx === 0) return;
+            const ok = opt.getAttribute('data-axis') === a;
+            opt.hidden = !ok;
+        });
+        critSel.value = "";
+    }
+
+    axisSel?.addEventListener('change', filterCriteria);
+})();
+</script>
+{% endblock %}

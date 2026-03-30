@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-grid">
+  <section class="grid-left">
+    <div class="card gov-card h-100">
+      <div class="card-body h-100 d-flex flex-column">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="page-title">لوحة المؤشرات</div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-outline-gov" href="{{ url_for('process_new') }}">إنشاء عملية</a>
+            <a class="btn btn-gov" href="{{ url_for('processes') }}">سجل العمليات</a>
+          </div>
+        </div>
+
+        <div class="kpi-row mt-3">
+          <div class="kpi-card">
+            <div class="kpi-label">إجمالي العمليات</div>
+            <div class="kpi-value">{{ snap.total_processes }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">قيد التنفيذ</div>
+            <div class="kpi-value">{{ snap.in_progress }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">قيد الاعتماد/المسودة</div>
+            <div class="kpi-value">{{ snap.pending_approval }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">ملاحظات مفتوحة</div>
+            <div class="kpi-value">{{ snap.open_findings }}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">نسبة الإغلاق</div>
+            <div class="kpi-value">{{ snap.closure_rate }}%</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap mt-3">
+          <canvas id="kriChart"></canvas>
+        </div>
+
+        <div class="mt-auto small text-muted">
+          المؤشرات مبنية على بيانات الملاحظة والتقييم المهيكل ضمن كل عملية، بما يتيح قياس المخاطر بشكل مستمر.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="grid-right">
+    <div class="card gov-card h-100">
+      <div class="card-body h-100 d-flex flex-column">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="panel-title">مؤشر المخاطر حسب السجون (KRI)</div>
+          <div class="chip">أعلى 10</div>
+        </div>
+
+        <div class="table-responsive table-fix mt-2">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>السجن</th>
+                <th class="text-nowrap">المنطقة</th>
+                <th class="text-center">KRI</th>
+                <th class="text-center">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pr in prisons[:10] %}
+              <tr class="row-link" data-href="{{ url_for('prison_view', code=pr.code) }}">
+                <td class="fw-semibold">{{ pr.name }} <span class="muted">({{ pr.code }})</span></td>
+                <td class="text-nowrap">{{ pr.region }}</td>
+                <td class="text-center">
+                  <span class="pill pill-{{ pr.level|lower }}">{{ pr.kri }}</span>
+                </td>
+                <td class="text-center">{{ pr.backlog }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-auto d-flex justify-content-between">
+          <div class="small text-muted">انقر على السجن لعرض التفاصيل</div>
+          <a class="btn btn-outline-gov btn-sm" href="{{ url_for('processes') }}">استعراض كل العمليات</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.__DASH = {
+    prisons: {{ prisons|tojson }}
+  };
+</script>
+{% endblock %}
