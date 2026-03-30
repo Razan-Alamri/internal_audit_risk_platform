@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <defs>
+    <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#c9a24a"/>
+      <stop offset="1" stop-color="#5a6230"/>
+    </linearGradient>
+  </defs>
+  <circle cx="110" cy="110" r="98" fill="none" stroke="url(#g)" stroke-width="10"/>
+  <circle cx="110" cy="110" r="76" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+  <path d="M70 150 V95 c0-10 8-18 18-18 h44 c10 0 18 8 18 18 v55" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M85 150 V110 M110 150 V105 M135 150 V112" stroke="rgba(255,255,255,0.75)" stroke-width="6" stroke-linecap="round"/>
+  <text x="110" y="60" text-anchor="middle" font-family="Tahoma" font-size="14" fill="rgba(255,255,255,0.9)">المديرية العامة للسجون</text>
+</svg>
